@@ -1,11 +1,8 @@
-// app/api/route.ts
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const url =
-    "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10%2C29%2C11%2C26%2C36%2C14%2C60100&pageSize=100&pageNum=1&option=1&_t=1749223526816";
-
+  const baseUrl = "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents";
   const headers = {
     "Sec-Ch-Ua-Platform": "\"Windows\"",
     "Accept-Language": "en",
@@ -22,56 +19,64 @@ export async function GET() {
     "Accept-Encoding": "gzip, deflate, br",
   };
 
+  let pageNum = 1;
+  const maxPages = 100; // safety limit to prevent infinite loop
+  const allTournaments = [];
+
   try {
-    const response = await axios.get(url, {
-      headers: headers,
-      timeout: 10000, // 10 seconds timeout
-    });
+    while (pageNum <= maxPages) {
+    console.log(`Fetching page ${pageNum}...`);
 
-    // Process the data to extract relevant information
-    const tournaments = response.data?.data?.tournaments || [];
-    const simplifiedData = tournaments.map((tournament) => ({
-      tournamentName: tournament.name,
-      events: tournament.events?.map((event) => ({
-        homeTeam: event.homeTeamName,
-        awayTeam: event.awayTeamName,
-        startTime: event.estimateStartTime,
-        status: event.matchStatus,
-      })) || [],
-    }));
+      const url = `${baseUrl}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10%2C29%2C11%2C26%2C36%2C14%2C60100&pageSize=100&pageNum=${pageNum}&option=1&_t=${Date.now()}`;
 
-    return NextResponse.json({
-      success: true,
-      data: simplifiedData,
-    }, {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+      const response = await axios.get(url, {
+        headers,
+        timeout: 10000,
+      });
 
+      const tournaments = response.data?.data?.tournaments || [];
+
+      if (tournaments.length === 0) {
+        console.log(`no data returned`);
+
+        break; // stop if no data returned
+      }
+
+      const simplifiedData = tournaments.map((tournament) => ({
+        tournamentName: tournament.name,
+        events: tournament.events?.map((event) => ({
+          homeTeam: event.homeTeamName,
+          awayTeam: event.awayTeamName,
+          startTime: event.estimateStartTime,
+          status: event.matchStatus,
+        })) || [],
+      }));
+
+      allTournaments.push(...simplifiedData);
+      pageNum++;
+    }
+
+    return NextResponse.json(
+      { success: true, totalPages: pageNum - 1, data: allTournaments },
+      { status: 200 }
+    );
   } catch (error) {
     let errorMessage = "Failed to fetch data";
     let statusCode = 500;
 
     if (axios.isAxiosError(error)) {
-      const axiosError = error;
-      errorMessage = axiosError.message;
-      statusCode = axiosError.response?.status || 500;
-      
-      if (axiosError.response?.status === 404) {
-        errorMessage = "Resource not found";
-      } else if (axiosError.code === 'ECONNABORTED') {
-        errorMessage = "Request timeout";
-      }
+      errorMessage = error.response?.status === 404
+        ? "No more pages"
+        : error.message;
+      statusCode = error.response?.status || 500;
     } else if (error instanceof Error) {
       errorMessage = error.message;
     }
 
     console.error("Fetch error:", errorMessage);
-    return NextResponse.json({
-      success: false,
-      error: errorMessage,
-    }, {
-      status: statusCode,
-    });
+    return NextResponse.json(
+      { success: false, error: errorMessage },
+      { status: statusCode }
+    );
   }
 }
