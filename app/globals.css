@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.clip-left {
+  clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%);
+}
+
+.clip-right {
+  clip-path: polygon(10% 100%, 100% 100%, 100% 0, 0% 0);
+}
