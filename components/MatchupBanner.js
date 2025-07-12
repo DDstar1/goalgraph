@@ -8,11 +8,11 @@ const MatchupBanner = ({
   timestamp,
 }) => {
   return (
-    <div className="relative flex flex-col items-center w-[97vw] mb-3">
+    <div className="relative flex flex-col items-center max-w-[97vw] mb-3">
       {/* Banner Row */}
       <div className="flex items-center">
         {/* LEFT SIDE */}
-        <div className="relative px-20  py-5 mr-[-16px] z-10">
+        <div className="relative px-20  py-5 mr-[-16px] z-5">
           <div className="absolute inset-0 bg-black clip-right"></div>
           <div className="absolute inset-[1px] bg-white pl-3.5 clip-right flex items-center justify-center">
             <div className="flex items-center space-x-2">
@@ -25,12 +25,12 @@ const MatchupBanner = ({
         </div>
 
         {/* CENTER VS CIRCLE */}
-        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-lg font-bold text-gray-700 shadow z-20 border-2 border-gray-300">
+        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center  text-lg font-bold text-gray-700 shadow z-10 border-2 border-gray-300">
           VS
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="relative px-20 py-5 ml-[-16px] z-10">
+        <div className="relative px-20 py-5 ml-[-16px] z-5">
           <div className="absolute inset-0 bg-black clip-left"></div>
           <div className="absolute inset-[1px] bg-white  pr-3.5 clip-left flex items-center justify-center">
             <div className="flex items-center space-x-2">

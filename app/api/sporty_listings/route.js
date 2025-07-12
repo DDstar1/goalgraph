@@ -63,9 +63,20 @@ export async function GET() {
       pageNum++;
     }
 
-    return NextResponse.json(
-      { success: true, totalPages: pageNum - 1, data: allTournaments },
-      { status: 200 }
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        totalPages: pageNum - 1,
+        data: allTournaments,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Cache-Control":
+            "public, max-age=0, s-maxage=7200, stale-while-revalidate=60",
+          "Content-Type": "application/json",
+        },
+      }
     );
   } catch (error) {
     let errorMessage = "Failed to fetch data";

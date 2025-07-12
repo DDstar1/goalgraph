@@ -1,4 +1,4 @@
-import TournamentGroups from "../components/TournamentGroups";
+import TournamentGroups from "../../components/TournamentGroups";
 
 export default function FixtureClient() {
   return (
