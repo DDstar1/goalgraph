@@ -128,10 +128,10 @@ function TournamentGroups() {
       {/* Mobile Sidebar */}
       <div
         id="mobile_menu"
-        className="md:hidden fixed top-[64px] bg-green-100 left-0 z-50"
+        className="md:hidden fixed top-[64px] bg-green-600 left-0 z-50"
       >
         <button onClick={() => setShowSidebar(true)}>
-          <Menu className="text-green-700" />
+          <Menu className="text-white" />
         </button>
       </div>
 
