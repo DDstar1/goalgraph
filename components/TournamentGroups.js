@@ -137,7 +137,7 @@ function TournamentGroups() {
 
       {showSidebar && (
         <div className="fixed top-[64px] inset-0 z-50 bg-black/20  flex">
-          <div className="bg-green-100 w-64 p-4 h-full overflow-y-auto">
+          <div className="bg-green-100 w-64 p-4 pt-0 h-full overflow-y-auto">
             <h2 className="text-lg   font-bold py-3 border-b-2 -mx-1 w-full border-white sticky top-0 text-green-800 text-center bg-green-100">
               Tournaments
               <button
