@@ -129,7 +129,7 @@ function TournamentGroups() {
       <button
         onClick={() => setShowSidebar(true)}
         id="mobile_menu"
-        className="md:hidden fixed top-[64px] bg-green-600 left-0 z-50 w-8"
+        className="md:hidden fixed top-[64px] bg-green-600 left-0 z-50 w-9 h-9"
       >
         <Menu className="text-white w-full" />
       </button>
