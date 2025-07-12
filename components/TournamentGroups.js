@@ -136,14 +136,17 @@ function TournamentGroups() {
       </div>
 
       {showSidebar && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex">
+        <div className="fixed top-[64px] inset-0 z-50 bg-black/20  flex">
           <div className="bg-green-100 w-64 p-4 h-full overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-green-800">Tournaments</h2>
-              <button onClick={() => setShowSidebar(false)}>
+            <h2 className="text-lg   font-bold py-3 border-b-2 -mx-1 w-full border-white sticky top-0 text-green-800 text-center bg-green-100">
+              Tournaments
+              <button
+                className="absolute right-0 top-1/2 -translate-y-1/2 transform"
+                onClick={() => setShowSidebar(false)}
+              >
                 <X />
               </button>
-            </div>
+            </h2>
             <ul className="space-y-2">
               {tournaments.map((tournament, index) => (
                 <li
