@@ -126,14 +126,13 @@ function TournamentGroups() {
       </aside>
 
       {/* Mobile Sidebar */}
-      <div
+      <button
+        onClick={() => setShowSidebar(true)}
         id="mobile_menu"
         className="md:hidden fixed top-[64px] bg-green-600 left-0 z-50"
       >
-        <button onClick={() => setShowSidebar(true)}>
-          <Menu className="text-white w-5" />
-        </button>
-      </div>
+        <Menu className="text-white " />
+      </button>
 
       {showSidebar && (
         <div className="fixed top-[64px] inset-0 z-50 bg-black/20  flex">
