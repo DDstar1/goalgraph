@@ -131,7 +131,7 @@ function TournamentGroups() {
         className="md:hidden fixed top-[64px] bg-green-600 left-0 z-50"
       >
         <button onClick={() => setShowSidebar(true)}>
-          <Menu className="text-white" />
+          <Menu className="text-white w-5" />
         </button>
       </div>
 
