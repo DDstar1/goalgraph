@@ -5,6 +5,7 @@ import axios from "axios";
 import MatchupBanner from "./MatchupBanner";
 import { ChevronDown, ChevronUp, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 
 const TOURNAMENTS_PER_PAGE = 5;
 
@@ -35,8 +36,13 @@ function TournamentGroups() {
         //   }
         // }
 
-        const res = await axios.get("/api/sporty_listings");
+        const res = await axios.get("/api/sporty_listings", {
+          timeout: 3000000, // 5 minutes in milliseconds
+        });
+
         const rawData = res.data?.data || [];
+
+        console.log(rawData);
 
         const grouped = rawData.filter(
           (tournament) =>
@@ -203,14 +209,25 @@ function TournamentGroups() {
                         (match, idx) =>
                           match.homeTeam &&
                           match.awayTeam && (
-                            <MatchupBanner
-                              key={idx}
-                              team_A_name={match.homeTeam}
-                              team_A_logo={match.homeTeamLogo}
-                              team_B_name={match.awayTeam}
-                              team_B_logo={match.awayTeamTeamLogo}
-                              timestamp={match.startTime}
-                            />
+                            <Link
+                              href={{
+                                pathname: "/analysis",
+                                query: {
+                                  home: match.homeTeam,
+                                  away: match.awayTeam,
+                                },
+                              }}
+                            >
+                              <MatchupBanner
+                                key={idx}
+                                team_A_name={match.homeTeam}
+                                team_A_logo={match.homeTeamLogo}
+                                team_B_name={match.awayTeam}
+                                team_B_logo={match.awayTeamTeamLogo}
+                                timestamp={match.startTime}
+                                markets={match.startTime}
+                              />
+                            </Link>
                           )
                       )}
                     </div>

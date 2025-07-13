@@ -8,7 +8,7 @@ const MatchupBanner = ({
   timestamp,
 }) => {
   return (
-    <div className="relative flex flex-col items-center max-w-[97vw] mb-3">
+    <div className="relative flex flex-col items-center max-w-[97vw] mb-5">
       {/* Banner Row */}
       <div className="flex items-center">
         {/* LEFT SIDE */}

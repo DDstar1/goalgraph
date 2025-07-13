@@ -1,140 +1,116 @@
 import axios from "axios";
+
 import { NextResponse } from "next/server";
 import espn_all_teams from "@/public/json/espn_all_teams";
+import { createClient } from "@supabase/supabase-js";
 
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+
+// ... imports unchanged ...
 export async function GET() {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - FIVE_HOURS_MS);
+
+  const { data: cached, error: fetchError } = await supabase
+    .from("z_site_sporty_fixtures")
+    .select("*")
+    .gte("scraped_at", cutoff.toISOString());
+
+  if (fetchError) {
+    console.error("❌ Supabase fetch error:", fetchError.message);
+  }
+
+  if (cached && cached.length > 0) {
+    return NextResponse.json({
+      success: true,
+      from: "cache",
+      data: cached,
+    });
+  }
+
   const baseUrl =
     "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents";
   const headers = {
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Accept-Language": "en",
-    "Sec-Ch-Ua":
-      '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-    Clientid: "web",
-    Operid: "2",
-    "Sec-Ch-Ua-Mobile": "?0",
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    Platform: "web",
-    Accept: "*/*",
-    Referer: "https://www.sportybet.com/ng/sport/football",
-    "Accept-Encoding": "gzip, deflate, br",
+    // ... headers same as before ...
   };
 
   let pageNum = 1;
-  const maxPages = 100; // safety limit to prevent infinite loop
-  const allTournaments = [];
+  const maxPages = 100;
+  const allEvents = [];
 
   try {
     while (pageNum <= maxPages) {
       console.log(`Fetching page ${pageNum}...`);
 
       const url = `${baseUrl}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10%2C29%2C11%2C26%2C36%2C14%2C60100&pageSize=100&pageNum=${pageNum}&option=1&_t=${Date.now()}`;
-
-      const response = await axios.get(url, {
-        headers,
-        timeout: 10000,
-      });
+      const response = await axios.get(url, { headers });
 
       const tournaments = response.data?.data?.tournaments || [];
+      if (tournaments.length === 0) break;
 
-      if (tournaments.length === 0) {
-        console.log(`no data returned`);
-
-        break; // stop if no data returned
-      }
-
-      const simplifiedData = tournaments.map((tournament) => ({
-        tournamentName: tournament.name,
-        events:
-          tournament.events?.map((event) => ({
-            homeTeam: event.homeTeamName,
-            homeTeamLogo: espnLookup(event.homeTeamName),
-            awayTeam: event.awayTeamName,
-            awayTeamTeamLogo: espnLookup(event.awayTeamName),
-            startTime: event.estimateStartTime,
-            SportyMatchId: event.eventId,
+      for (const tournament of tournaments) {
+        for (const event of tournament.events || []) {
+          const record = {
+            tournament_name: tournament.name,
+            home_team: event.homeTeamName,
+            home_team_logo: espnLookup(event.homeTeamName),
+            away_team: event.awayTeamName,
+            away_team_logo: espnLookup(event.awayTeamName),
+            start_time: new Date(event.estimateStartTime).toISOString(),
+            sporty_match_id: event.eventId,
             status: event.matchStatus,
             markets: event.markets,
-          })) || [],
-      }));
+            scraped_at: now.toISOString(),
+          };
+          allEvents.push(record);
 
-      allTournaments.push(...simplifiedData);
+          //  upsert events to Supabase
+          const { error: insertError, data: inserted } = await supabase
+            .from("z_site_sporty_fixtures")
+            .upsert(record, {
+              onConflict: "sporty_match_id",
+            });
+
+          if (insertError) {
+            console.error("❌ Upsert failed:", insertError.message);
+            return NextResponse.json(
+              { success: false, error: insertError.message },
+              { status: 500 }
+            );
+          }
+
+          console.log(`✅ Inserted/updated ${inserted?.length || 0} events`);
+        }
+      }
+
       pageNum++;
     }
 
-    // Log all markets as JSON strings
-    const uniqueMarkets = new Map();
-
-    allTournaments.forEach((tournament) => {
-      tournament.events.forEach((event) => {
-        event.markets?.forEach((market) => {
-          const key = `${market.marketGuide}-${market.name}`;
-          if (!uniqueMarkets.has(key)) {
-            uniqueMarkets.set(key, {
-              name: market.name,
-              guide: market.marketGuide,
-            });
-          }
-        });
-      });
+    return NextResponse.json({
+      success: true,
+      totalPages: pageNum - 1,
+      inserted: inserted?.length || allEvents.length,
     });
-
-    // Convert the Map values to a list
-    const marketList = Array.from(uniqueMarkets.values());
-
-    // Log the result
-    console.log("Unique Markets:\n", JSON.stringify(marketList, null, 2));
-
-    return new NextResponse(
-      JSON.stringify({
-        success: true,
-        totalPages: pageNum - 1,
-        data: allTournaments,
-      }),
-      {
-        status: 200,
-        // headers: {
-        //   "Cache-Control":
-        //     "public, max-age=0, s-maxage=7200, stale-while-revalidate=60",
-        //   "Content-Type": "application/json",
-        // },
-      }
-    );
   } catch (error) {
-    let errorMessage = "Failed to fetch data";
-    let statusCode = 500;
-
-    if (axios.isAxiosError(error)) {
-      errorMessage =
-        error.response?.status === 404 ? "No more pages" : error.message;
-      statusCode = error.response?.status || 500;
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-
-    console.error("Fetch error:", errorMessage);
+    console.error("❌ Fetch error:", error);
     return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: statusCode }
+      { success: false, error: "Fetch or processing error" },
+      { status: 500 }
     );
   }
 }
 
-/**
- * Attempts to find a matching ESPN team logo URL for a given team name.
- * - Normalizes the team name by removing short words (≤ 2 letters), converting to lowercase, and joining with hyphens.
- * - Searches the espn_all_teams list for a partial match.
- * - If a match is found, extracts the team ID and returns the ESPN logo URL.
- **/
 function espnLookup(teamName) {
   if (!teamName) return null;
-
   const name = teamName
     .toLowerCase()
     .split(" ")
-    .filter((word) => word.length > 2) // remove 2-letter or shorter words
+    .filter((word) => word.length > 2)
     .join("-");
 
   const match = espn_all_teams.find((entry) =>
