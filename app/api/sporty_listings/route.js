@@ -1,5 +1,6 @@
-import axios from "axios";
+// @vercel/crons: 0 6 * * *  # every day at 06:00 UTC
 
+import axios from "axios";
 import { NextResponse } from "next/server";
 import espn_all_teams from "@/public/json/espn_all_teams";
 import { createClient } from "@supabase/supabase-js";
