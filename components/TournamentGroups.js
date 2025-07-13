@@ -23,17 +23,17 @@ function TournamentGroups() {
         const cacheKey = "sporty_listings_cache";
         const cached = localStorage.getItem(cacheKey);
 
-        if (cached) {
-          const { timestamp, data } = JSON.parse(cached);
-          const age = Date.now() - timestamp;
+        // if (cached) {
+        //   const { timestamp, data } = JSON.parse(cached);
+        //   const age = Date.now() - timestamp;
 
-          if (age < 7200000) {
-            console.log("Using cached data");
-            setTournaments(data);
-            setLoading(false);
-            return;
-          }
-        }
+        //   if (age < 7200000) {
+        //     console.log("Using cached data");
+        //     setTournaments(data);
+        //     setLoading(false);
+        //     return;
+        //   }
+        // }
 
         const res = await axios.get("/api/sporty_listings");
         const rawData = res.data?.data || [];
@@ -44,10 +44,10 @@ function TournamentGroups() {
             tournament.events.some((e) => e.homeTeam && e.awayTeam)
         );
 
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ timestamp: Date.now(), data: grouped })
-        );
+        // localStorage.setItem(
+        //   cacheKey,
+        //   JSON.stringify({ timestamp: Date.now(), data: grouped })
+        // );
 
         setTournaments(grouped);
       } catch (error) {
@@ -178,7 +178,7 @@ function TournamentGroups() {
                 className="flex justify-between items-center sticky z-20 top-[64px] bg-white px-4 py-2 cursor-pointer"
                 onClick={() => toggleExpand(globalIndex)}
               >
-                <h2 className="text-lg font-bold text-gray-800">
+                <h2 className="text-lg font-bold text-gray-800 pl-4">
                   {tournament.tournamentName}
                 </h2>
                 {isOpen ? (

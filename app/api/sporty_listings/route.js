@@ -56,12 +56,36 @@ export async function GET() {
             startTime: event.estimateStartTime,
             SportyMatchId: event.eventId,
             status: event.matchStatus,
+            markets: event.markets,
           })) || [],
       }));
 
       allTournaments.push(...simplifiedData);
       pageNum++;
     }
+
+    // Log all markets as JSON strings
+    const uniqueMarkets = new Map();
+
+    allTournaments.forEach((tournament) => {
+      tournament.events.forEach((event) => {
+        event.markets?.forEach((market) => {
+          const key = `${market.marketGuide}-${market.name}`;
+          if (!uniqueMarkets.has(key)) {
+            uniqueMarkets.set(key, {
+              name: market.name,
+              guide: market.marketGuide,
+            });
+          }
+        });
+      });
+    });
+
+    // Convert the Map values to a list
+    const marketList = Array.from(uniqueMarkets.values());
+
+    // Log the result
+    console.log("Unique Markets:\n", JSON.stringify(marketList, null, 2));
 
     return new NextResponse(
       JSON.stringify({
@@ -71,11 +95,11 @@ export async function GET() {
       }),
       {
         status: 200,
-        headers: {
-          "Cache-Control":
-            "public, max-age=0, s-maxage=7200, stale-while-revalidate=60",
-          "Content-Type": "application/json",
-        },
+        // headers: {
+        //   "Cache-Control":
+        //     "public, max-age=0, s-maxage=7200, stale-while-revalidate=60",
+        //   "Content-Type": "application/json",
+        // },
       }
     );
   } catch (error) {
