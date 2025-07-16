@@ -1,1 +1,8 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/sporty_listings/route",
+      "schedule": "*/20 * * * *"
+    }
+  ]
+}
