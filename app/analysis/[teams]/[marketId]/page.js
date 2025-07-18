@@ -1,6 +1,7 @@
 // app/analysis/[teams]/[marketId]/page.js
 
 import MarketAnalysisClient from "@/components/MarketAnalysis/MarketAnalysisClient";
+import { headers } from "next/headers";
 
 export default async function AnalysisPage({ params }) {
   const { teams, marketId } = params;
