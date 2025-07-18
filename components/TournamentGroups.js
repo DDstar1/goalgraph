@@ -6,12 +6,13 @@ import MatchupBanner from "./MatchupBanner";
 import { ChevronDown, ChevronUp, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import slugify from "slugify";
 
 const TOURNAMENTS_PER_PAGE = 5;
 
 function TournamentGroups() {
   const [loading, setLoading] = useState(true);
-  const [tournaments, setTournaments] = useState([]);
+  const [tournaments, setTournaments] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [expanded, setExpanded] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
@@ -21,41 +22,26 @@ function TournamentGroups() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const cacheKey = "sporty_listings_cache";
-        const cached = localStorage.getItem(cacheKey);
-
-        // if (cached) {
-        //   const { timestamp, data } = JSON.parse(cached);
-        //   const age = Date.now() - timestamp;
-
-        //   if (age < 7200000) {
-        //     console.log("Using cached data");
-        //     setTournaments(data);
-        //     setLoading(false);
-        //     return;
-        //   }
-        // }
-
         const res = await axios.get("/api/sporty_listings", {
-          timeout: 3000000, // 5 minutes in milliseconds
+          timeout: 3000000,
         });
 
         const rawData = res.data?.data || [];
 
-        console.log(rawData);
+        console.log("rawData", rawData);
 
-        const grouped = rawData.filter(
-          (tournament) =>
-            tournament.events &&
-            tournament.events.some((e) => e.homeTeam && e.awayTeam)
+        const filteredFixtures = rawData.filter(
+          (fixture) => fixture.home_team && fixture.away_team
         );
 
-        // localStorage.setItem(
-        //   cacheKey,
-        //   JSON.stringify({ timestamp: Date.now(), data: grouped })
-        // );
+        const groupedByTournament = filteredFixtures.reduce((acc, fixture) => {
+          const tournament = fixture.tournament_name || "Unknown";
+          if (!acc[tournament]) acc[tournament] = [];
+          acc[tournament].push(fixture);
+          return acc;
+        }, {});
 
-        setTournaments(grouped);
+        setTournaments(groupedByTournament);
       } catch (error) {
         console.error("Error fetching matches:", error);
       } finally {
@@ -66,9 +52,11 @@ function TournamentGroups() {
     fetchData();
   }, []);
 
-  const totalPages = Math.ceil(tournaments.length / TOURNAMENTS_PER_PAGE);
+  const tournamentEntries = Object.entries(tournaments);
+  const totalPages = Math.ceil(tournamentEntries.length / TOURNAMENTS_PER_PAGE);
+
   const startIndex = (currentPage - 1) * TOURNAMENTS_PER_PAGE;
-  const currentTournaments = tournaments.slice(
+  const currentTournaments = tournamentEntries.slice(
     startIndex,
     startIndex + TOURNAMENTS_PER_PAGE
   );
@@ -96,7 +84,7 @@ function TournamentGroups() {
       });
     }, 100);
 
-    setShowSidebar(false); // close mobile sidebar
+    setShowSidebar(false);
   };
 
   if (loading) {
@@ -107,31 +95,31 @@ function TournamentGroups() {
     );
   }
 
-  if (tournaments.length === 0) {
+  if (tournamentEntries.length === 0) {
     return <p className="text-center text-gray-500">No tournaments found.</p>;
   }
 
   return (
     <div className="flex bg-white min-h-[100dvh]">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <aside className="hidden md:block w-64 bg-green-100 p-4 pt-0 sticky top-[64px] h-screen overflow-y-auto border-r border-green-200">
         <h2 className="text-lg font-bold py-3 border-b-2 -mx-4 border-white sticky top-0 text-green-800 text-center bg-green-100">
           Tournaments
         </h2>
         <ul className="space-y-2">
-          {tournaments.map((tournament, index) => (
+          {tournamentEntries.map(([tournamentName], index) => (
             <li
               key={index}
               onClick={() => scrollToSection(index)}
               className="cursor-pointer text-green-700 hover:text-green-900 text-sm"
             >
-              {tournament.tournamentName}
+              {tournamentName}
             </li>
           ))}
         </ul>
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar Toggle Button */}
       <button
         onClick={() => setShowSidebar(true)}
         id="mobile_menu"
@@ -140,10 +128,11 @@ function TournamentGroups() {
         <Menu className="text-white w-full" />
       </button>
 
+      {/* Mobile Sidebar */}
       {showSidebar && (
-        <div className="fixed top-[64px] inset-0 z-50 bg-black/20  flex">
+        <div className="fixed top-[64px] inset-0 z-50 bg-black/20 flex">
           <div className="bg-green-100 w-64 p-4 pt-0 h-full overflow-y-auto">
-            <h2 className="text-lg   font-bold py-3 border-b-2 -mx-1 w-full border-white sticky top-0 text-green-800 text-center bg-green-100">
+            <h2 className="text-lg font-bold py-3 border-b-2 -mx-1 w-full border-white sticky top-0 text-green-800 text-center bg-green-100">
               Tournaments
               <button
                 className="absolute right-0 top-1/2 -translate-y-1/2 transform"
@@ -153,13 +142,13 @@ function TournamentGroups() {
               </button>
             </h2>
             <ul className="space-y-2">
-              {tournaments.map((tournament, index) => (
+              {tournamentEntries.map(([tournamentName], index) => (
                 <li
                   key={index}
                   onClick={() => scrollToSection(index)}
                   className="cursor-pointer text-green-700 hover:text-green-900 text-sm"
                 >
-                  {tournament.tournamentName}
+                  {tournamentName}
                 </li>
               ))}
             </ul>
@@ -170,7 +159,7 @@ function TournamentGroups() {
 
       {/* Main Content */}
       <div className="flex-1 px-4 py-6 flex flex-col items-center space-y-6">
-        {currentTournaments.map((tournament, localIndex) => {
+        {currentTournaments.map(([tournamentName, matches], localIndex) => {
           const globalIndex = startIndex + localIndex;
           const isOpen = expanded[globalIndex] ?? true;
 
@@ -185,7 +174,7 @@ function TournamentGroups() {
                 onClick={() => toggleExpand(globalIndex)}
               >
                 <h2 className="text-lg font-bold text-gray-800 pl-4">
-                  {tournament.tournamentName}
+                  {tournamentName}
                 </h2>
                 {isOpen ? (
                   <ChevronUp color="black" size={20} />
@@ -205,31 +194,27 @@ function TournamentGroups() {
                     className="overflow-hidden"
                   >
                     <div className="space-y-2 pb-3 pt-2">
-                      {tournament.events.map(
-                        (match, idx) =>
-                          match.homeTeam &&
-                          match.awayTeam && (
-                            <Link
-                              href={{
-                                pathname: "/analysis",
-                                query: {
-                                  home: match.homeTeam,
-                                  away: match.awayTeam,
-                                },
-                              }}
-                            >
-                              <MatchupBanner
-                                key={idx}
-                                team_A_name={match.homeTeam}
-                                team_A_logo={match.homeTeamLogo}
-                                team_B_name={match.awayTeam}
-                                team_B_logo={match.awayTeamTeamLogo}
-                                timestamp={match.startTime}
-                                markets={match.startTime}
-                              />
-                            </Link>
-                          )
-                      )}
+                      {matches.map((match, idx) => (
+                        <Link
+                          href={`/analysis/${slugify(
+                            `${match.home_team} vs ${match.away_team}`,
+                            {
+                              lower: true,
+                              strict: true,
+                            }
+                          )}/${match.sporty_match_id}`}
+                          key={idx}
+                        >
+                          <MatchupBanner
+                            team_A_name={match.home_team}
+                            team_A_logo={match.home_team_logo}
+                            team_B_name={match.away_team}
+                            team_B_logo={match.away_team_logo}
+                            timestamp={match.start_time}
+                            markets={match.markets}
+                          />
+                        </Link>
+                      ))}
                     </div>
                   </motion.div>
                 )}

@@ -14,35 +14,64 @@ const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
 
 // ... imports unchanged ...
 export async function GET() {
+  let allEvents = [];
+
   const now = new Date();
   const cutoff = new Date(now.getTime() - FIVE_HOURS_MS);
 
   const { data: cached, error: fetchError } = await supabase
     .from("z_site_sporty_fixtures")
     .select("*")
-    .gte("scraped_at", cutoff.toISOString());
+    .gte("scraped_at", cutoff.toISOString())
+    .limit(100);
+
+  allEvents = cached;
 
   if (fetchError) {
     console.error("❌ Supabase fetch error:", fetchError.message);
   }
 
-  if (cached && cached.length > 0) {
+  if (allEvents && allEvents.length > 0) {
     return NextResponse.json({
       success: true,
       from: "cache",
-      data: cached,
+      data: allEvents,
     });
+  } else {
+    // Step 2: If no recent records, delete old ones
+    const { error: deleteError } = await supabase
+      .from("z_site_sporty_fixtures")
+      .delete()
+      .lt("scraped_at", cutoff.toISOString());
+
+    if (deleteError) {
+      console.error("❌ Failed to delete old records:", deleteError.message);
+    } else {
+      console.log("✅ Old records deleted successfully.");
+    }
   }
 
   const baseUrl =
     "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents";
   const headers = {
-    // ... headers same as before ...
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Accept-Language": "en",
+    "Sec-Ch-Ua":
+      '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+    Clientid: "web",
+    Operid: "2",
+    "Sec-Ch-Ua-Mobile": "?0",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    Platform: "web",
+    Accept: "*/*",
+    Referer: "https://www.sportybet.com/ng/sport/football",
+    "Accept-Encoding": "gzip, deflate, br",
   };
 
   let pageNum = 1;
   const maxPages = 100;
-  const allEvents = [];
 
   try {
     while (pageNum <= maxPages) {
@@ -63,7 +92,7 @@ export async function GET() {
             away_team: event.awayTeamName,
             away_team_logo: espnLookup(event.awayTeamName),
             start_time: new Date(event.estimateStartTime).toISOString(),
-            sporty_match_id: event.eventId,
+            sporty_match_id: event.eventId.split(":").pop(),
             status: event.matchStatus,
             markets: event.markets,
             scraped_at: now.toISOString(),
@@ -85,17 +114,16 @@ export async function GET() {
             );
           }
 
-          console.log(`✅ Inserted/updated ${inserted?.length || 0} events`);
+          console.log(`✅ Inserted/updated ${allEvents?.length || 0} events`);
         }
       }
-
       pageNum++;
     }
 
     return NextResponse.json({
       success: true,
       totalPages: pageNum - 1,
-      inserted: inserted?.length || allEvents.length,
+      inserted: allEvents?.length || allEvents.length,
     });
   } catch (error) {
     console.error("❌ Fetch error:", error);
