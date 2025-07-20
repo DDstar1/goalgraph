@@ -1,90 +1,150 @@
 "use client";
-import React from "react";
-import { VictoryPie } from "victory";
 
-export default function OneXTwo({ data }) {
+import { VictoryPie } from "victory";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+
+export default function OneXTwoSummary({ data }) {
   if (!data || !data.homeGames || !data.awayGames) return null;
 
-  const { homeGames, awayGames } = data;
+  const { homeGames = [], awayGames = [] } = data;
 
-  const countOutcomes = (games, team, isHomePerspective = true) => {
-    let win = 0,
-      draw = 0,
-      loss = 0;
+  // Infer team names
+  const homeTeam = homeGames[0]?.home_team_name || "Home";
+  const awayTeam = awayGames[0]?.away_team_name || "Away";
 
-    for (const g of games) {
-      const homeGoals = g.home_team_goals;
-      const awayGoals = g.away_team_goals;
-      const teamIsHome = g.home_team_name.toLowerCase() === team.toLowerCase();
+  // Calculate 1X2 stats
+  let homeWinCount = 0;
+  let drawCount = 0;
+  let awayWinCount = 0;
+  let totalGames = homeGames.length + awayGames.length;
 
-      const outcome =
-        homeGoals > awayGoals
-          ? "home"
-          : homeGoals < awayGoals
-          ? "away"
-          : "draw";
+  [...homeGames, ...awayGames].forEach((game) => {
+    const homeGoals = game.home_team_goals;
+    const awayGoals = game.away_team_goals;
 
-      if (outcome === "draw") {
-        draw++;
-      } else if (
-        (outcome === "home" && teamIsHome) ||
-        (outcome === "away" && !teamIsHome)
-      ) {
-        win++;
-      } else {
-        loss++;
-      }
+    if (homeGoals > awayGoals) {
+      if (game.home_team_name === homeTeam) homeWinCount++;
+      else awayWinCount++;
+    } else if (awayGoals > homeGoals) {
+      if (game.away_team_name === awayTeam) awayWinCount++;
+      else homeWinCount++;
+    } else {
+      drawCount++;
     }
+  });
 
-    const total = win + draw + loss || 1;
-    return {
-      win: (win / total) * 100,
-      draw: (draw / total) * 100,
-      loss: (loss / total) * 100,
-    };
-  };
-
-  const homeTeam = homeGames[0]?.home_team_name ?? "Home";
-  const awayTeam = awayGames[0]?.away_team_name ?? "Away";
-
-  const homeStats = countOutcomes(homeGames, homeTeam);
-  const awayStats = countOutcomes(awayGames, awayTeam, false);
-
-  const homeWin = ((homeStats.win + awayStats.loss) / 2).toFixed(1);
-  const draw = ((homeStats.draw + awayStats.draw) / 2).toFixed(1);
-  const awayWin = ((homeStats.loss + awayStats.win) / 2).toFixed(1);
+  const toPercent = (count) =>
+    totalGames ? Math.round((count / totalGames) * 100) : 0;
 
   const pieData = [
-    { x: `${homeTeam}\nWin`, y: Number(homeWin) },
-    { x: "Draw", y: Number(draw) },
-    { x: `${awayTeam}\nWin`, y: Number(awayWin) },
+    { x: `${homeTeam}`, y: toPercent(homeWinCount) },
+    { x: "Draw", y: toPercent(drawCount) },
+    { x: `${awayTeam}`, y: toPercent(awayWinCount) },
   ];
 
-  return (
-    <div className="p-4 bg-gray-50 rounded-md border mb-6 shadow-sm">
-      <h4 className="font-semibold text-gray-800 mb-2">1X2 Prediction</h4>
-      <ul className="text-sm space-y-1 text-gray-700 mb-4">
-        <li>
-          <strong>{homeTeam} Win:</strong> {homeWin}%
-        </li>
-        <li>
-          <strong>Draw:</strong> {draw}%
-        </li>
-        <li>
-          <strong>{awayTeam} Win:</strong> {awayWin}%
-        </li>
-      </ul>
+  const formatDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
 
-      <VictoryPie
-        data={pieData}
-        colorScale={["#34d399", "#fbbf24", "#f87171"]}
-        radius={90}
-        innerRadius={40}
-        labels={({ datum }) => `${datum.x}\n${datum.y}%`}
-        style={{
-          labels: { fontSize: 10, fill: "#374151", textAlign: "center" },
-        }}
-      />
+  const renderTable = (games) => (
+    <table className="w-full border text-left text-xs">
+      <thead>
+        <tr className="bg-gray-100 text-gray-600">
+          <th className="p-1">Date</th>
+          <th className="p-1">Home</th>
+          <th className="p-1 text-center">Score</th>
+          <th className="p-1">Away</th>
+        </tr>
+      </thead>
+      <tbody>
+        {games.map((game, i) => (
+          <tr key={i} className="text-xs text-gray-700">
+            <td className="p-1">{formatDate(game.game_date)}</td>
+            <td className="p-1">{game.home_team_name}</td>
+            <td className="p-1 text-center font-semibold">
+              {game.home_team_goals} - {game.away_team_goals}
+            </td>
+            <td className="p-1">{game.away_team_name}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  return (
+    <div className="rounded-md border bg-white p-4 shadow-sm">
+      <Swiper
+        spaceBetween={20}
+        slidesPerView={1}
+        pagination={{ clickable: true }}
+        modules={[Pagination]}
+        className="custom-swiper"
+      >
+        {/* Chart Slide */}
+        <SwiperSlide>
+          <div className="flex flex-col items-center">
+            <h4 className="font-semibold text-gray-800 mb-4 text-sm">
+              1X2 Result Summary
+            </h4>
+            <VictoryPie
+              data={pieData}
+              colorScale={["#34d399", "#fbbf24", "#f87171"]}
+              radius={90}
+              innerRadius={40}
+              animate={{ duration: 1000, easing: "exp" }}
+              labels={({ datum }) => `${datum.x}\n${datum.y}%`}
+              style={{
+                labels: {
+                  fontSize: 10,
+                  fill: "#374151",
+                  textAlign: "center",
+                },
+              }}
+            />
+          </div>
+        </SwiperSlide>
+
+        {/* Home Team Games */}
+        {homeGames.length > 0 && (
+          <SwiperSlide>
+            <div>
+              <h5 className="text-gray-800 font-semibold text-sm mb-2">
+                Last 10 {homeTeam} Games
+              </h5>
+              {renderTable(homeGames)}
+            </div>
+          </SwiperSlide>
+        )}
+
+        {/* Away Team Games */}
+        {awayGames.length > 0 && (
+          <SwiperSlide>
+            <div>
+              <h5 className="text-gray-800 font-semibold text-sm mb-2">
+                Last 10 {awayTeam} Games
+              </h5>
+              {renderTable(awayGames)}
+            </div>
+          </SwiperSlide>
+        )}
+      </Swiper>
+
+      {/* Custom Pagination Styles */}
+      <style jsx global>{`
+        .custom-swiper .swiper-pagination-bullet {
+          background-color: #d1fae5;
+          opacity: 1;
+        }
+        .custom-swiper .swiper-pagination-bullet-active {
+          background-color: #10b981;
+        }
+      `}</style>
     </div>
   );
 }
