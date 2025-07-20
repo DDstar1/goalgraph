@@ -7,6 +7,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { Loader2, XCircle } from "lucide-react";
+import _1_X_2 from "./AnalysisType/_1_X_2_client";
 
 export default function MarketGroupAccordion({
   groupName,
@@ -17,6 +18,7 @@ export default function MarketGroupAccordion({
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [analysisData, setAnalysisData] = useState(null);
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -39,6 +41,7 @@ export default function MarketGroupAccordion({
         if (!res.ok) throw new Error("Failed to fetch analysis");
 
         const data = await res.json();
+        setAnalysisData(data);
       } catch (err) {
         console.error("❌ Error fetching group analysis:", err);
         setError(true);
@@ -69,30 +72,14 @@ export default function MarketGroupAccordion({
           <p className="text-red-500 text-sm">Failed to load markets.</p>
         ) : loading ? (
           <p className="text-sm text-gray-500">Loading markets...</p>
-        ) : markets.length ? (
-          <ul className="space-y-3">
-            {markets.map((market) => (
-              <li
-                key={market.id}
-                className="p-4 border rounded-md bg-white shadow-sm"
-              >
-                <p>
-                  <strong>Title:</strong> {market.title}
-                </p>
-                <p>
-                  <strong>Description:</strong> {market.desc}
-                </p>
-                <p>
-                  <strong>Specifier:</strong> {market.specifier || "—"}
-                </p>
-                <p>
-                  <strong>Source:</strong> {market.sourceType}
-                </p>
-              </li>
-            ))}
-          </ul>
         ) : (
-          <p className="text-gray-500">No markets found for this group.</p>
+          <>
+            {groupName === "1X2" && analysisData && (
+              <div>
+                advsdv <_1_X_2 data={analysisData} />
+              </div>
+            )}
+          </>
         )}
       </AccordionContent>
     </AccordionItem>

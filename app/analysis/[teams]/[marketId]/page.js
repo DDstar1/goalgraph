@@ -3,8 +3,9 @@
 import MarketAnalysisClient from "@/components/MarketAnalysis/MarketAnalysisClient";
 import { headers } from "next/headers";
 
-export default async function AnalysisPage({ params }) {
-  const { teams, marketId } = params;
+export default async function GET(context) {
+  const { params } = await context; // ✅ Await context
+  const { teams, marketId } = params; // ✅ No need to await this
 
   let home_team = "";
   let away_team = "";
@@ -13,15 +14,23 @@ export default async function AnalysisPage({ params }) {
   let markets = [];
 
   try {
-    const baseUrl = headers().get("x-forwarded-host") || headers().get("host");
-    const protocol = baseUrl?.includes("localhost") ? "http" : "https";
+    const headerList = await headers(); // ✅ MUST be awaited
+    const baseUrl =
+      headerList.get("x-forwarded-host") || headerList.get("host");
+    const protocol = baseUrl.includes("localhost") ? "http" : "https";
 
-    const res = await fetch(`${protocol}://${baseUrl}/api/markets/${marketId}`);
+    const res = await fetch(
+      `${protocol}://${baseUrl}/api/markets/${marketId}`,
+      {
+        cache: "no-store", // Optional: to always get fresh data
+      }
+    );
+
+    console.log(`${protocol}://${baseUrl}/api/markets/${marketId}`);
 
     if (!res.ok) throw new Error("Failed to fetch market");
 
     const result = await res.json();
-
     const data = result.data || {};
 
     home_team = data.home_team || "";
