@@ -92,21 +92,23 @@ export default function OneXTwoSummary({ data }) {
             <h4 className="font-semibold text-gray-800 mb-4 text-sm">
               1X2 Result Summary
             </h4>
-            <VictoryPie
-              data={pieData}
-              colorScale={["#34d399", "#fbbf24", "#f87171"]}
-              radius={90}
-              innerRadius={40}
-              animate={{ duration: 1000, easing: "exp" }}
-              labels={({ datum }) => `${datum.x}\n${datum.y}%`}
-              style={{
-                labels: {
-                  fontSize: 10,
-                  fill: "#374151",
-                  textAlign: "center",
-                },
-              }}
-            />
+            <div ClassName="w-64 h-64 ">
+              <VictoryPie
+                data={pieData}
+                colorScale={["#34d399", "#fbbf24", "#f87171"]}
+                radius={60}
+                innerRadius={30}
+                animate={{ duration: 1000, easing: "exp" }}
+                labels={({ datum }) => `${datum.x}\n${datum.y}%`}
+                style={{
+                  labels: {
+                    fontSize: 12,
+                    fill: "#374151",
+                    textAlign: "center",
+                  },
+                }}
+              />
+            </div>
           </div>
         </SwiperSlide>
 

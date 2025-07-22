@@ -11,44 +11,43 @@ const supabase = createClient(
 );
 
 const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+const BATCH_SIZE = 100; // Supabase handles 500 max, use 100 to be safe
+const MAX_PAGES = 100;
 
-// ... imports unchanged ...
 export async function GET() {
-  let allEvents = [];
-
   const now = new Date();
   const cutoff = new Date(now.getTime() - FIVE_HOURS_MS);
+  let allEvents = [];
 
+  // Step 1: Use cache if recent data exists
   const { data: cached, error: fetchError } = await supabase
     .from("z_site_sporty_fixtures")
     .select("*")
     .gte("scraped_at", cutoff.toISOString())
     .limit(100);
 
-  allEvents = cached;
-
   if (fetchError) {
     console.error("❌ Supabase fetch error:", fetchError.message);
   }
 
-  if (allEvents && allEvents.length > 0) {
+  if (cached && cached.length > 0) {
     return NextResponse.json({
       success: true,
       from: "cache",
-      data: allEvents,
+      data: cached,
     });
-  } else {
-    // Step 2: If no recent records, delete old ones
-    const { error: deleteError } = await supabase
-      .from("z_site_sporty_fixtures")
-      .delete()
-      .lt("scraped_at", cutoff.toISOString());
+  }
 
-    if (deleteError) {
-      console.error("❌ Failed to delete old records:", deleteError.message);
-    } else {
-      console.log("✅ Old records deleted successfully.");
-    }
+  // Step 2: Delete stale records
+  const { error: deleteError } = await supabase
+    .from("z_site_sporty_fixtures")
+    .delete()
+    .lt("scraped_at", cutoff.toISOString());
+
+  if (deleteError) {
+    console.error("❌ Failed to delete old records:", deleteError.message);
+  } else {
+    console.log("✅ Old records deleted successfully.");
   }
 
   const baseUrl =
@@ -70,12 +69,9 @@ export async function GET() {
     "Accept-Encoding": "gzip, deflate, br",
   };
 
-  let pageNum = 1;
-  const maxPages = 100;
-
   try {
-    while (pageNum <= maxPages) {
-      console.log(`Fetching page ${pageNum}...`);
+    for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+      console.log(`🔄 Fetching page ${pageNum}...`);
 
       const url = `${baseUrl}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10%2C29%2C11%2C26%2C36%2C14%2C60100&pageSize=100&pageNum=${pageNum}&option=1&_t=${Date.now()}`;
       const response = await axios.get(url, { headers });
@@ -97,45 +93,53 @@ export async function GET() {
             markets: event.markets,
             scraped_at: now.toISOString(),
           };
+
           allEvents.push(record);
-
-          //  upsert events to Supabase
-          const { error: insertError, data: inserted } = await supabase
-            .from("z_site_sporty_fixtures")
-            .upsert(record, {
-              onConflict: "sporty_match_id",
-            });
-
-          if (insertError) {
-            console.error("❌ Upsert failed:", insertError.message);
-            return NextResponse.json(
-              { success: false, error: insertError.message },
-              { status: 500 }
-            );
-          }
-
-          console.log(`✅ Inserted/updated ${allEvents?.length || 0} events`);
         }
       }
-      pageNum++;
+    }
+
+    // Step 3: Batch upsert all records
+    const chunked = chunkArray(allEvents, BATCH_SIZE);
+
+    for (const chunk of chunked) {
+      const { error } = await supabase
+        .from("z_site_sporty_fixtures")
+        .upsert(chunk, { onConflict: "sporty_match_id" });
+
+      if (error) {
+        console.error("❌ Batch upsert failed:", error.message);
+      } else {
+        console.log(`✅ Upserted batch of ${chunk.length} records`);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      totalPages: pageNum - 1,
-      inserted: allEvents?.length || allEvents.length,
+      totalInserted: allEvents.length,
+      totalBatches: chunked.length,
     });
   } catch (error) {
-    console.error("❌ Fetch error:", error);
+    console.error("❌ Final fetch or processing error:", error);
     return NextResponse.json(
-      { success: false, error: "Fetch or processing error" },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
 }
 
+// Helper to chunk an array into pieces
+function chunkArray(array, size) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
+
 function espnLookup(teamName) {
   if (!teamName) return null;
+
   const name = teamName
     .toLowerCase()
     .split(" ")
