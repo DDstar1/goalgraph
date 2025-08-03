@@ -6,8 +6,8 @@ import espn_all_teams from "@/public/json/espn_all_teams";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_KEY
 );
 
 const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
