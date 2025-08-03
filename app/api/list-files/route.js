@@ -36,6 +36,7 @@ export async function GET() {
       signedFiles.push({
         name: file.name,
         url: signed?.signedUrl,
+        uploaded_at: file.created_at ?? null, // Use created_at from Supabase
       });
     }
 
