@@ -22,7 +22,7 @@ export default function UploadExePage() {
 
   async function fetchLatestExecutable() {
     const { data, error } = await supabase
-      .from("executables_meta")
+      .from("z_site_executables_meta")
       .select("*")
       .order("uploaded_at", { ascending: false })
       .limit(1);
@@ -76,10 +76,13 @@ export default function UploadExePage() {
 
           const downloadUrl = downloadData.signedUrl;
 
-          await supabase.from("executables_meta").delete().neq("name", "");
+          await supabase
+            .from("z_site_executables_meta")
+            .delete()
+            .neq("name", "");
 
           const { error: insertError } = await supabase
-            .from("executables_meta")
+            .from("z_site_executables_meta")
             .insert({
               name: file.name,
               description,
@@ -122,7 +125,7 @@ export default function UploadExePage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-lg text-center">
         <h1 className="text-2xl font-bold mb-6 text-gray-800">
-          Upload `.exe` File
+          Upload Worker `.exe` File
         </h1>
 
         <input
