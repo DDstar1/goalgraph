@@ -8,6 +8,32 @@ import {
 } from "@/components/ui/accordion";
 import { Loader2, XCircle } from "lucide-react";
 import _1_X_2 from "./AnalysisType/_1_X_2_client";
+import _1X2_2UP from "./AnalysisType/_1X2_2UP_client";
+import _Over_Under from "./AnalysisType/_Over_Under_client";
+
+// Map group names to URL-safe slugs
+const groupSlugMap = {
+  "1X2": "1x2",
+  "1X2 - 2UP": "1x2-2up",
+  "Over/Under": "over-under",
+  "Double Chance": "double-chance",
+  Handicap: "handicap",
+  "GG/NG": "gg-ng",
+  "Draw No Bet": "draw-no-bet",
+  "Odd/Even": "odd-even",
+  "Over/Under & GG/NG": "over-under-gg-ng",
+};
+
+// Fallback slugify in case groupName is not in map
+const toSlug = (name) => {
+  return (
+    groupSlugMap[name] ||
+    name
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+  );
+};
 
 export default function MarketGroupAccordion({
   groupName,
@@ -20,13 +46,18 @@ export default function MarketGroupAccordion({
   const [error, setError] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
 
+  const slug = toSlug(groupName);
+
   useEffect(() => {
     const fetchAnalysis = async () => {
       setLoading(true);
       setError(false);
 
+      console.log("🏠 homeTeam:", homeTeam);
+      console.log("🛫 awayTeam:", awayTeam);
+
       try {
-        const res = await fetch(`/api/analysis/${groupName}`, {
+        const res = await fetch(`/api/analysis/${slug}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -51,10 +82,10 @@ export default function MarketGroupAccordion({
     };
 
     fetchAnalysis();
-  }, [groupName, homeTeam, awayTeam, markets]);
+  }, [slug, homeTeam, awayTeam, markets]);
 
   return (
-    <AccordionItem value={`item-${groupName}`}>
+    <AccordionItem value={`item-${slug}`}>
       <AccordionTrigger className="text-left">
         <div className="flex justify-between w-full items-center">
           <span>{groupName}</span>
@@ -74,11 +105,36 @@ export default function MarketGroupAccordion({
           <p className="text-sm text-gray-500">Loading markets...</p>
         ) : (
           <>
-            {groupName === "1X2" && analysisData && (
-              <div>
-                advsdv <_1_X_2 data={analysisData} />
-              </div>
-            )}
+            {(() => {
+              console.log("👉 groupName:", groupName);
+              console.log("👉 analysisData:", analysisData);
+
+              if (groupName === "1X2" && analysisData) {
+                console.log("✅ Rendering <_1_X_2 />");
+                return (
+                  <div>
+                    <_1_X_2 data={analysisData} />
+                  </div>
+                );
+              } else if (groupName === "1X2 - 2UP" && analysisData) {
+                console.log("✅ Rendering <summary_1X2_2UP />");
+                return (
+                  <div>
+                    <_1X2_2UP data={analysisData} />
+                  </div>
+                );
+              } else if (groupName === "Over/Under" && analysisData) {
+                console.log("✅ Rendering <summary_1X2_2UP />");
+                return (
+                  <div>
+                    <_Over_Under data={analysisData} />
+                  </div>
+                );
+              } else {
+                console.log("❌ No matching group, nothing to render");
+                return null;
+              }
+            })()}
           </>
         )}
       </AccordionContent>

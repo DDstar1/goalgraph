@@ -14,7 +14,7 @@ export async function POST(req) {
       slugify(awayTeam, { lower: true })
     );
 
-    console.log("Team IDs:", home_team_id, away_team_id);
+    //console.log("Team IDs:", home_team_id, away_team_id);
 
     // Fetch last 10 games for the home team
     const { data: homeGames, error: homeError } = await supabase.rpc(
@@ -30,8 +30,8 @@ export async function POST(req) {
     );
     if (awayError) throw awayError;
 
-    console.log("Home Games:", homeGames);
-    console.log("Away Games:", awayGames);
+    //console.log("Home Games:", homeGames);
+    //console.log("Away Games:", awayGames);
 
     return Response.json(
       {

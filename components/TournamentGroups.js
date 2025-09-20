@@ -28,7 +28,7 @@ function TournamentGroups() {
 
         const rawData = res.data?.data || [];
 
-        console.log("rawData", rawData);
+        //console.log("rawData", rawData);
 
         const filteredFixtures = rawData.filter(
           (fixture) => fixture.home_team && fixture.away_team

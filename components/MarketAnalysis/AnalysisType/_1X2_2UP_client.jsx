@@ -6,12 +6,12 @@ import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-export default function OneXTwoSummary({ data }) {
+export default function _1X2_2UP({ data }) {
   if (!data || !data.homeGames || !data.awayGames) return null;
 
   const { homeGames = [], awayGames = [] } = data;
 
-  // ✅ Infer team name by most frequent occurrence
+  // 🔹 Infer most frequent team name
   function inferTeamName(games, key) {
     const counts = {};
     games.forEach((g) => {
@@ -34,25 +34,16 @@ export default function OneXTwoSummary({ data }) {
   console.log("🏠 Inferred Home Team:", homeTeam);
   console.log("🛫 Inferred Away Team:", awayTeam);
 
-  // Calculate 1X2 stats
+  // 1X2 stats
   let homeWinCount = 0;
   let drawCount = 0;
   let awayWinCount = 0;
   const totalGames = homeGames.length + awayGames.length;
 
   [...homeGames, ...awayGames].forEach((game) => {
-    const homeGoals = game.home_team_goals;
-    const awayGoals = game.away_team_goals;
-
-    if (homeGoals > awayGoals) {
-      if (game.home_team_name === homeTeam) homeWinCount++;
-      else awayWinCount++;
-    } else if (awayGoals > homeGoals) {
-      if (game.away_team_name === awayTeam) awayWinCount++;
-      else homeWinCount++;
-    } else {
-      drawCount++;
-    }
+    if (game.result_1X2 === "1") homeWinCount++;
+    else if (game.result_1X2 === "2") awayWinCount++;
+    else drawCount++;
   });
 
   const toPercent = (count) =>
@@ -71,30 +62,63 @@ export default function OneXTwoSummary({ data }) {
       day: "numeric",
     });
 
-  const renderTable = (games) => (
-    <table className="w-full border text-left text-xs">
-      <thead>
-        <tr className="bg-gray-100 text-gray-600">
-          <th className="p-1">Date</th>
-          <th className="p-1">Home</th>
-          <th className="p-1 text-center">Score</th>
-          <th className="p-1">Away</th>
-        </tr>
-      </thead>
-      <tbody>
-        {games.map((game, i) => (
-          <tr key={i} className="text-xs text-gray-700">
-            <td className="p-1">{formatDate(game.game_date)}</td>
-            <td className="p-1">{game.home_team_name}</td>
-            <td className="p-1 text-center font-semibold">
-              {game.home_team_goals} - {game.away_team_goals}
-            </td>
-            <td className="p-1">{game.away_team_name}</td>
+  // 2UP summary
+  const twoUPSummary = [...homeGames, ...awayGames].reduce((acc, g) => {
+    if (g.result_2UP === "Home 2UP") {
+      const team = g.home_team_name;
+      acc[team] = (acc[team] || 0) + 1;
+    } else if (g.result_2UP === "Away 2UP") {
+      const team = g.away_team_name;
+      acc[team] = (acc[team] || 0) + 1;
+    }
+
+    return acc;
+  }, {}); // <-- plain empty
+
+  console.log(twoUPSummary);
+
+  const renderTable = (games, team) => {
+    console.log("Rendering table for:", team);
+    console.log("Games:", games);
+
+    return (
+      <table className="w-full border text-left text-xs">
+        <thead>
+          <tr className="bg-gray-100 text-gray-600">
+            <th className="p-1">Date</th>
+            <th className="p-1">Home</th>
+            <th className="p-1 text-center">Score</th>
+            <th className="p-1">Away</th>
+            <th className="p-1 text-center">1X2</th>
+            <th className="p-1 text-center">2UP</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+        </thead>
+        <tbody>
+          {games.map((game, i) => {
+            console.log("Game:", game);
+
+            const show2UP =
+              (game.result_2UP === "Home 2UP" &&
+                game.home_team_name === team) ||
+              (game.result_2UP === "Away 2UP" && game.away_team_name === team);
+
+            return (
+              <tr key={i} className="text-xs text-gray-700">
+                <td className="p-1">{formatDate(game.game_date)}</td>
+                <td className="p-1">{game.home_team_name}</td>
+                <td className="p-1 text-center font-semibold">
+                  {game.home_team_goals} - {game.away_team_goals}
+                </td>
+                <td className="p-1">{game.away_team_name}</td>
+                <td className="p-1 text-center">{game.result_1X2}</td>
+                <td className="p-1 text-center">{show2UP ? "✅" : ""}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  };
 
   return (
     <div className="rounded-md border bg-white p-4 shadow-sm">
@@ -109,7 +133,7 @@ export default function OneXTwoSummary({ data }) {
         <SwiperSlide>
           <div className="flex flex-col items-center">
             <h4 className="font-semibold text-gray-800 mb-4 text-sm">
-              {homeTeam} vs {awayTeam} – 1X2 Result Summary
+              1X2 Result Summary
             </h4>
             <div className="w-64 h-64">
               <VictoryPie
@@ -128,6 +152,15 @@ export default function OneXTwoSummary({ data }) {
                 }}
               />
             </div>
+
+            {/* 2UP Summary */}
+            <div className="mt-4 text-xs text-gray-700">
+              <p>
+                <strong>2UP Summary:</strong> {homeTeam} 2UP:{" "}
+                {twoUPSummary[homeTeam] || 0}, {awayTeam} 2UP:{" "}
+                {twoUPSummary[awayTeam] || 0}
+              </p>
+            </div>
           </div>
         </SwiperSlide>
 
@@ -138,7 +171,7 @@ export default function OneXTwoSummary({ data }) {
               <h5 className="text-gray-800 font-semibold text-sm mb-2">
                 Last 10 {homeTeam} Games
               </h5>
-              {renderTable(homeGames)}
+              {renderTable(homeGames, homeTeam)}
             </div>
           </SwiperSlide>
         )}
@@ -150,7 +183,7 @@ export default function OneXTwoSummary({ data }) {
               <h5 className="text-gray-800 font-semibold text-sm mb-2">
                 Last 10 {awayTeam} Games
               </h5>
-              {renderTable(awayGames)}
+              {renderTable(awayGames, awayTeam)}
             </div>
           </SwiperSlide>
         )}

@@ -1,54 +1,66 @@
 // app/analysis/[teams]/[marketId]/page.js
 
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import MarketAnalysisClient from "@/components/MarketAnalysis/MarketAnalysisClient";
-import { headers } from "next/headers";
 
-export default async function GET(context) {
-  const { params } = await context; // ✅ Await context
-  const { teams, marketId } = params; // ✅ No need to await this
+export default function MarketAnalysisPage() {
+  const { teams, marketId } = useParams(); // ✅ Get params client-side
+  const [homeTeam, setHomeTeam] = useState("");
+  const [awayTeam, setAwayTeam] = useState("");
+  const [homeTeamLogo, setHomeTeamLogo] = useState("");
+  const [awayTeamLogo, setAwayTeamLogo] = useState("");
+  const [markets, setMarkets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  let home_team = "";
-  let away_team = "";
-  let home_team_logo = "";
-  let away_team_logo = "";
-  let markets = [];
+  useEffect(() => {
+    if (!marketId) return;
 
-  try {
-    const headerList = await headers(); // ✅ MUST be awaited
-    const baseUrl =
-      headerList.get("x-forwarded-host") || headerList.get("host");
-    const protocol = baseUrl.includes("localhost") ? "http" : "https";
+    const fetchMarket = async () => {
+      setLoading(true);
+      try {
+        // Client fetch — no need for headers()
+        const res = await fetch(`/api/markets/${marketId}`, {
+          cache: "no-store",
+        });
 
-    const res = await fetch(
-      `${protocol}://${baseUrl}/api/markets/${marketId}`,
-      {
-        cache: "no-store", // Optional: to always get fresh data
+        if (!res.ok) throw new Error("Failed to fetch market");
+
+        const result = await res.json();
+        const data = result.data || {};
+
+        setHomeTeam(data.home_team || "");
+        setAwayTeam(data.away_team || "");
+        setHomeTeamLogo(data.home_team_logo || "");
+        setAwayTeamLogo(data.away_team_logo || "");
+        setMarkets(data.markets || []);
+      } catch (err) {
+        console.error("❌ Error fetching market client-side:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    );
+    };
 
-    console.log(`${protocol}://${baseUrl}/api/markets/${marketId}`);
+    fetchMarket();
+  }, [marketId]);
 
-    if (!res.ok) throw new Error("Failed to fetch market");
-
-    const result = await res.json();
-    const data = result.data || {};
-
-    home_team = data.home_team || "";
-    away_team = data.away_team || "";
-    home_team_logo = data.home_team_logo || "";
-    away_team_logo = data.away_team_logo || "";
-    markets = data.markets || [];
-  } catch (err) {
-    console.error("❌ Error fetching market server-side:", err);
-  }
+  if (loading) return <p>Loading market data…</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
     <MarketAnalysisClient
-      homeTeam={home_team}
-      awayTeam={away_team}
-      homeTeamLogo={home_team_logo}
-      awayTeamLogo={away_team_logo}
+      homeTeam={homeTeam}
+      awayTeam={awayTeam}
+      homeTeamLogo={homeTeamLogo}
+      awayTeamLogo={awayTeamLogo}
       markets={markets}
     />
   );
 }
+MarketAnalysisPage.displayName = "MarketAnalysisPage";
+MarketAnalysisPage.revalidate = 0; // Disable caching for dynamic data
+MarketAnalysisPage.fetchCache = "force-no-store"; // Ensure fresh data on each request

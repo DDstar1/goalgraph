@@ -6,8 +6,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_KEY
 );
 
-export async function GET(request, { params }) {
-  const marketId = params.marketId;
+export async function GET(
+  request,
+  context // ✅ context.params is a Promise in Next.js 15
+) {
+  const { marketId } = await context.params; // ✅ Await before using
 
   console.log("marketId:", marketId);
 
@@ -19,9 +22,8 @@ export async function GET(request, { params }) {
   }
 
   try {
-    // Fetch from Supabase
     const { data, error } = await supabase
-      .from("z_site_sporty_fixtures") // Replace with your actual table name
+      .from("z_site_sporty_fixtures")
       .select("*")
       .eq("sporty_match_id", marketId)
       .single();

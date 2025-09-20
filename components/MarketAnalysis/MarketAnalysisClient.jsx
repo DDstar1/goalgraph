@@ -16,6 +16,7 @@ export default function MarketAnalysisClient({ homeTeam, awayTeam, markets }) {
   // Sort each group alphabetically by market.name
   for (const group in grouped) {
     grouped[group].sort((a, b) => a.name.localeCompare(b.name));
+    //console.log(`Group: ${group}`, grouped[group]);
   }
 
   return (

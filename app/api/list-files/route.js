@@ -12,7 +12,7 @@ export async function GET() {
       .from("executables")
       .list("", { limit: 100 });
 
-    console.log("📦 List result:", files, error);
+    //console.log("📦 List result:", files, error);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

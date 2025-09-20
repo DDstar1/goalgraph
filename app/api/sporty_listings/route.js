@@ -47,7 +47,7 @@ export async function GET() {
   if (deleteError) {
     console.error("❌ Failed to delete old records:", deleteError.message);
   } else {
-    console.log("✅ Old records deleted successfully.");
+    //console.log("✅ Old records deleted successfully.");
   }
 
   const baseUrl =
@@ -71,7 +71,7 @@ export async function GET() {
 
   try {
     for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
-      console.log(`🔄 Fetching page ${pageNum}...`);
+      //console.log(`🔄 Fetching page ${pageNum}...`);
 
       const url = `${baseUrl}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10%2C29%2C11%2C26%2C36%2C14%2C60100&pageSize=100&pageNum=${pageNum}&option=1&_t=${Date.now()}`;
       const response = await axios.get(url, { headers });
@@ -110,7 +110,7 @@ export async function GET() {
       if (error) {
         console.error("❌ Batch upsert failed:", error.message);
       } else {
-        console.log(`✅ Upserted batch of ${chunk.length} records`);
+        //console.log(`✅ Upserted batch of ${chunk.length} records`);
       }
     }
 
