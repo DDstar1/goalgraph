@@ -10,6 +10,7 @@ import { Loader2, XCircle } from "lucide-react";
 import _1_X_2 from "./AnalysisType/_1_X_2_client";
 import _1X2_2UP from "./AnalysisType/_1X2_2UP_client";
 import _Over_Under from "./AnalysisType/_Over_Under_client";
+import _Double_Chance from "./AnalysisType/_Double_Chance_client";
 
 // Map group names to URL-safe slugs
 const groupSlugMap = {
@@ -128,6 +129,13 @@ export default function MarketGroupAccordion({
                 return (
                   <div>
                     <_Over_Under data={analysisData} />
+                  </div>
+                );
+              } else if (groupName === "Double Chance" && analysisData) {
+                console.log("✅ Rendering <Double Chance />");
+                return (
+                  <div>
+                    <_Double_Chance data={analysisData} />
                   </div>
                 );
               } else {
